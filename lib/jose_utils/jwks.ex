@@ -62,11 +62,12 @@ defmodule JOSEUtils.JWKS do
   """
   @spec encryption_keys(
     t(),
-    alg_or_algs :: JOSEUtils.JWA.sig_alg() | [JOSEUtils.JWA.sig_alg()] | nil
+    alg_or_algs :: JOSEUtils.JWA.enc_alg() | [JOSEUtils.JWA.enc_alg()] | nil,
+    enc_or_encs :: JOSEUtils.JWA.enc_enc() | [JOSEUtils.JWA.enc_enc()] | nil
   ) :: t()
-  def encryption_keys(jwks, alg_or_algs \\ nil)
+  def encryption_keys(jwks, alg_or_algs \\ nil, enc_or_encs \\ nil)
 
-  def encryption_keys(jwks, nil) do
+  def encryption_keys(jwks, nil, nil) do
     jwks
     |> Enum.filter(fn jwk -> jwk["use"] == nil or jwk["use"] == "enc" end)
     |> Enum.filter(fn jwk ->
@@ -74,14 +75,24 @@ defmodule JOSEUtils.JWKS do
     end)
   end
 
-  def encryption_keys(jwks, algs) when is_list(algs) do
+  def encryption_keys(jwks, algs, nil) when is_list(algs) do
     jwks
     |> Enum.filter(fn jwk -> jwk["alg"] == nil or jwk["alg"] in algs end)
     |> encryption_keys()
   end
 
-  def encryption_keys(jwks, alg) when is_binary(alg) do
-    encryption_keys(jwks, [alg])
+  def encryption_keys(jwks, algs, encs) when is_list(algs) do
+    jwks
+    |> Enum.filter(fn jwk -> jwk["enc"] == nil or jwk["enc"] in encs end)
+    |> encryption_keys()
+  end
+
+  def encryption_keys(jwks, alg, enc_or_encs) when is_binary(alg) do
+    encryption_keys(jwks, [alg], enc_or_encs)
+  end
+
+  def encryption_keys(jwks, alg_or_algs, enc) when is_binary(enc) do
+    encryption_keys(jwks, alg_or_algs, [enc])
   end
 
   @doc """
@@ -89,7 +100,8 @@ defmodule JOSEUtils.JWKS do
   """
   @spec decryption_keys(
     t(),
-    alg_or_algs :: JOSEUtils.JWA.sig_alg() | [JOSEUtils.JWA.sig_alg()] | nil
+    alg_or_algs :: JOSEUtils.JWA.enc_alg() | [JOSEUtils.JWA.enc_alg()] | nil,
+    enc_or_encs :: JOSEUtils.JWA.enc_enc() | [JOSEUtils.JWA.enc_enc()] | nil
   ) :: t()
   def decryption_keys(jwks, alg_or_algs \\ nil, enc_or_encs \\ nil)
 
@@ -105,9 +117,9 @@ defmodule JOSEUtils.JWKS do
     |> decryption_keys()
   end
 
-  def decryption_keys(jwks, algs, enc) when is_list(algs) do
+  def decryption_keys(jwks, algs, encs) when is_list(algs) do
     jwks
-    |> Enum.filter(fn jwk -> jwk["enc"] == nil or jwk["enc"] in enc end)
+    |> Enum.filter(fn jwk -> jwk["enc"] == nil or jwk["enc"] in encs end)
     |> decryption_keys(algs)
   end
 
@@ -116,6 +128,6 @@ defmodule JOSEUtils.JWKS do
   end
 
   def decryption_keys(jwks, alg_or_algs, enc) when is_binary(enc) do
-    decryption_keys(jwks, alg_or_algs, enc)
+    decryption_keys(jwks, alg_or_algs, [enc])
   end
 end
