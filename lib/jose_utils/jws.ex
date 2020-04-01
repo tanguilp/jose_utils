@@ -14,7 +14,8 @@ defmodule JOSEUtils.JWS do
   Verifies the signature of a JWS, and returns its content and the signature key
 
   The function also filters the key using `JOSEUtils.JWKS.verification_keys/2` with the
-  whitelisted signature algorithms.
+  whitelisted signature algorithms. If the JWS has an identifier (`"kid"`), it only uses
+  that specific key.
   """
   @spec verify(
     jws :: serialized(),
