@@ -11,37 +11,22 @@ defmodule JOSEUtils.JWE do
   @type serialized :: String.t()
 
   @doc """
-  Returns `true` if the string is an encrypted, `false` otherwise
-
-  ## Example
-
-      iex> jwe_token = "eyJhbGciOiJBMTI4R0NNS1ciLCJlbmMiOiJBMTI4R0NNIiwiaXYiOiJzODNFNjhPNjhsWlM5ZVprIiwidGFnIjoieF9Ea2M5dm1LMk5RQV8tU2hvTkFRdyJ9.8B2qX8fVEa-s61RsZXqkCg.J7yJ8sKLbUlzyor6.FRs.BhBwImTv9B14NwVuxmfU6A"
-      "eyJhbGciOiJBMTI4R0NNS1ciLCJlbmMiOiJBMTI4R0NNIiwiaXYiOiJzODNFNjhPNjhsWlM5ZVprIiwidGFnIjoieF9Ea2M5dm1LMk5RQV8tU2hvTkFRdyJ9.8B2qX8fVEa-s61RsZXqkCg.J7yJ8sKLbUlzyor6.FRs.BhBwImTv9B14NwVuxmfU6A"
-      iex> JOSEUtils.JWE.is_jwe?(jwe_token)
-      true
-
-      iex> jws_token = "eyJhbGciOiJFZDI1NTE5In0.e30.xyg2LTblm75KbLFJtROZRhEgAFJdlqH9bhx8a9LO1yvLxNLhO9fLqnFuU3ojOdbObr8bsubPkPqUfZlPkGHXCQ"
-      "eyJhbGciOiJFZDI1NTE5In0.e30.xyg2LTblm75KbLFJtROZRhEgAFJdlqH9bhx8a9LO1yvLxNLhO9fLqnFuU3ojOdbObr8bsubPkPqUfZlPkGHXCQ"
-      iex> JOSEUtils.JWE.is_jwe?(jws_token)
-      false
-  """
-
-  @spec is_jwe?(String.t()) :: boolean()
-  def is_jwe?(input) when is_binary(input) do
-    JOSE.JWE.expand(input)
-
-    true
-  rescue
-    _ ->
-    false
-  end
-
-  @doc """
   Decrypts a JWE encrypted token and returns the decryption key
 
   It filters the keys to select only those suitable for decryption, using
   `JOSEUtils.JWKS.decryption_keys/3`. If the JWE has an identifier (`"kid"`), it only uses
   that specific key.
+
+  ## Example
+      iex> jwk_oct256 = JOSE.JWK.from_oct(<<0::256>>)
+      iex> jwk_oct256_map = JOSE.JWK.from_oct(<<0::256>>) |> JOSE.JWK.to_map() |> elem(1)
+      iex> encrypted_a256gcmkw = JOSE.JWE.block_encrypt(jwk_oct256, "{}", %{ "alg" => "A256GCMKW", "enc" => "A256GCM" }) |> JOSE.JWE.compact |> elem(1)
+      iex> JOSEUtils.JWE.decrypt(encrypted_a256gcmkw, jwk_oct256_map, ["A256KW"], ["A256GCM"])
+      :error
+      iex> JOSEUtils.JWE.decrypt(encrypted_a256gcmkw, jwk_oct256_map, ["A256KW", "A256GCMKW"], ["A256GCM"])
+      {:ok,
+       {"{}", %{"k" => "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "kty" => "oct"}}}
+
   """
   @spec decrypt(
     jwe :: serialized(),
@@ -88,7 +73,7 @@ defmodule JOSEUtils.JWE do
     JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()]
   ) :: {:ok, {binary(), JOSEUtils.JWK.t()}} | :error
   defp do_decrypt(jwe, header, %{} = jwk) do
-    case JOSE.JWE.block_decrypt(jwk, jwe) do
+    case JOSE.JWE.block_decrypt(JOSE.JWK.from_map(jwk), jwe) do
       {message, %JOSE.JWE{} = jose_jwe} when is_binary(message) ->
         if jose_alg(jose_jwe) == header["alg"] and jose_enc(jose_jwe) == header["enc"] do
           {:ok, {message, jwk}}
@@ -121,13 +106,7 @@ defmodule JOSEUtils.JWE do
   Returns the JOSE algorithm name from a `%JOSE.JWE{}` structure
 
       iex> jwk_oct128 = JOSE.JWK.from_oct(<<0::128>>)
-      %JOSE.JWK{
-        fields: %{},
-        keys: :undefined,
-        kty: {:jose_jwk_kty_oct, <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>}
-      }
       iex> encrypted_a128gcmkw = JOSE.JWE.block_encrypt(jwk_oct128, "{}", %{ "alg" => "A128GCMKW", "enc" => "A128GCM" }) |> JOSE.JWE.compact |> elem(1)
-      "eyJhbGciOiJBMTI4R0NNS1ciLCJlbmMiOiJBMTI4R0NNIiwiaXYiOiJkOERDUHI3Z0NNSmZhVE8zIiwidGFnIjoiTVlkOUlkM3BzcmpfbjFlalUxQlk2ZyJ9.Rwcs6_ZukJBWJka1k8zSlw.EzrsnOl0dUPQ7U3G.7Q0.tRU9DCY6zmNBseObLku8Xw"
       iex> JOSE.JWE.block_decrypt(jwk_oct128, encrypted_a128gcmkw) |> elem(1) |> JOSEUtils.JWE.jose_alg()
       "A128GCMKW"
   """

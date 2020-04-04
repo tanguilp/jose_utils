@@ -16,6 +16,16 @@ defmodule JOSEUtils.JWS do
   The function also filters the key using `JOSEUtils.JWKS.verification_keys/2` with the
   whitelisted signature algorithms. If the JWS has an identifier (`"kid"`), it only uses
   that specific key.
+
+  ## Example
+      iex> JOSE.crypto_fallback(true)
+      iex> jwk_ed25519   = JOSE.JWK.generate_key({:okp, :Ed25519})
+      iex> jwk_ed25519_map = jwk_ed25519 |> JOSE.JWK.to_map() |> elem(1)
+      iex> signed_ed25519 = JOSE.JWS.sign(jwk_ed25519, "{}", %{ "alg" => "Ed25519" }) |> JOSE.JWS.compact |> elem(1)
+      iex> JOSEUtils.JWS.verify(signed_ed25519, jwk_ed25519_map, ["RS256"])
+      :error
+      iex> JOSEUtils.JWS.verify(signed_ed25519, jwk_ed25519_map, ["Ed25519"]) |> elem(0)
+      :ok
   """
   @spec verify(
     jws :: serialized(),
@@ -60,7 +70,7 @@ defmodule JOSEUtils.JWS do
     jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()]
   ) :: {:ok, {binary(), JOSEUtils.JWK.t()}} | :error
   defp do_verify(jws, header, %{} = jwk) do
-    case JOSE.JWS.verify_strict(jwk, [header["alg"]], jws) do
+    case JOSE.JWS.verify_strict(JOSE.JWK.from_map(jwk), [header["alg"]], jws) do
       {true, verified_content, _} ->
         {:ok, {verified_content, jwk}}
 
