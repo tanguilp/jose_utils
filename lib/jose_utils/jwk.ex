@@ -25,7 +25,8 @@ defmodule JOSEUtils.JWK do
   @doc """
   Returns the digest used by a signature algorithm of the key
   """
-  @spec sig_alg_digest(t()) :: atom() # :crypto.hash_algorithm()
+  # :crypto.hash_algorithm()
+  @spec sig_alg_digest(t()) :: atom()
   def sig_alg_digest(%{"alg" => "EdDSA", "crv" => "Ed25519"}), do: :sha256
   def sig_alg_digest(%{"alg" => "EdDSA", "crv" => "Ed448"}), do: :sha3_256
   def sig_alg_digest(%{"alg" => "ES256"}), do: :sha256

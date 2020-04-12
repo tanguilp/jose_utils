@@ -28,10 +28,10 @@ defmodule JOSEUtils.JWS do
       :ok
   """
   @spec verify(
-    jws :: serialized(),
-    jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()],
-    allowed_algs :: [JOSEUtils.JWA.sig_alg()]
-  ) :: {:ok, {verified_content :: binary(), JOSEUtils.JWK.t()}} | :error
+          jws :: serialized(),
+          jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()],
+          allowed_algs :: [JOSEUtils.JWA.sig_alg()]
+        ) :: {:ok, {verified_content :: binary(), JOSEUtils.JWK.t()}} | :error
   def verify(jws, %{} = jwk, allowed_algs) do
     verify(jws, [jwk], allowed_algs)
   end
@@ -41,8 +41,7 @@ defmodule JOSEUtils.JWS do
       [header_b64, _, _] ->
         with {:ok, header_str} <- Base.decode64(header_b64, padding: false),
              {:ok, header} <- Jason.decode(header_str),
-             true <- header["alg"] in allowed_algs
-        do
+             true <- header["alg"] in allowed_algs do
           jwks =
             case header do
               %{"alg" => _, "kid" => jws_kid} ->
@@ -65,10 +64,10 @@ defmodule JOSEUtils.JWS do
   end
 
   @spec do_verify(
-    jws :: serialized(),
-    map(),
-    jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()]
-  ) :: {:ok, {binary(), JOSEUtils.JWK.t()}} | :error
+          jws :: serialized(),
+          map(),
+          jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()]
+        ) :: {:ok, {binary(), JOSEUtils.JWK.t()}} | :error
   defp do_verify(jws, header, %{} = jwk) do
     case JOSE.JWS.verify_strict(JOSE.JWK.from_map(jwk), [header["alg"]], jws) do
       {true, verified_content, _} ->

@@ -26,7 +26,7 @@ defmodule JOSEUtils do
     true
   rescue
     _ ->
-    false
+      false
   end
 
   @doc """

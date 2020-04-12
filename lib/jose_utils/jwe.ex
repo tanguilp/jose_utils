@@ -29,11 +29,11 @@ defmodule JOSEUtils.JWE do
 
   """
   @spec decrypt(
-    jwe :: serialized(),
-    jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()],
-    allowed_algs :: [JOSEUtils.JWA.enc_alg()],
-    allowed_encs :: [JOSEUtils.JWA.enc_enc()]
-  ) :: {:ok, {decrypted_message :: binary(), JOSEUtils.JWK.t()}} | :error
+          jwe :: serialized(),
+          jwk_or_jwks :: JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()],
+          allowed_algs :: [JOSEUtils.JWA.enc_alg()],
+          allowed_encs :: [JOSEUtils.JWA.enc_enc()]
+        ) :: {:ok, {decrypted_message :: binary(), JOSEUtils.JWK.t()}} | :error
   def decrypt(jwe, %{} = jwk, allowed_algs, allowed_encs) do
     decrypt(jwe, [jwk], allowed_algs, allowed_encs)
   end
@@ -44,8 +44,7 @@ defmodule JOSEUtils.JWE do
         with {:ok, header_str} <- Base.decode64(header_b64, padding: false),
              {:ok, header} <- Jason.decode(header_str),
              true <- header["alg"] in allowed_algs,
-             true <- header["enc"] in allowed_encs
-        do
+             true <- header["enc"] in allowed_encs do
           jwks =
             case header do
               %{"alg" => _, "kid" => jwe_kid} ->
@@ -68,10 +67,10 @@ defmodule JOSEUtils.JWE do
   end
 
   @spec do_decrypt(
-    serialized(),
-    map(),
-    JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()]
-  ) :: {:ok, {binary(), JOSEUtils.JWK.t()}} | :error
+          serialized(),
+          map(),
+          JOSEUtils.JWK.t() | [JOSEUtils.JWK.t()]
+        ) :: {:ok, {binary(), JOSEUtils.JWK.t()}} | :error
   defp do_decrypt(jwe, header, %{} = jwk) do
     case JOSE.JWE.block_decrypt(JOSE.JWK.from_map(jwk), jwe) do
       {message, %JOSE.JWE{} = jose_jwe} when is_binary(message) ->
@@ -111,185 +110,120 @@ defmodule JOSEUtils.JWE do
       "A128GCMKW"
   """
   @spec jose_alg(%JOSE.JWE{}) :: JOSEUtils.JWA.enc_alg()
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 128, true, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 128, true, _, _}}}) do
     "A128GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 128, false, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 128, false, _, _}}}) do
     "A128KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 192, true, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 192, true, _, _}}}) do
     "A192GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 192, false, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 192, false, _, _}}}) do
     "A192KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 256, true, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 256, true, _, _}}}) do
     "A256GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 256, false, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{alg: {:jose_jwe_alg_aes_kw, {:jose_jwe_alg_aes_kw, 256, false, _, _}}}) do
     "A256KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :aes_gcm_kw, 128, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :aes_gcm_kw, 128, _, _}}
+      }) do
     "ECDH-ES+A128GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :aes_kw, 128, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :aes_kw, 128, _, _}}
+      }) do
     "ECDH-ES+A128KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :aes_gcm_kw, 192, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :aes_gcm_kw, 192, _, _}}
+      }) do
     "ECDH-ES+A192GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :aes_kw, 192, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :aes_kw, 192, _, _}}
+      }) do
     "ECDH-ES+A192KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :aes_gcm_kw, 256, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :aes_gcm_kw, 256, _, _}}
+      }) do
     "ECDH-ES+A256GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :aes_kw, 256, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :aes_kw, 256, _, _}}
+      }) do
     "ECDH-ES+A256KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_ecdh_es,
-        {:jose_jwe_alg_ecdh_es, _, _, _, :c20p_kw, 256, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, :c20p_kw, 256, _, _}}
+      }) do
     "ECDH-ES+C20PKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, _, _, _, _}}}
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_ecdh_es, {:jose_jwe_alg_ecdh_es, _, _, _, _, _, _, _}}
+      }) do
     "ECDH-ES"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha256, _, 4096, :aes_gcm_kw, 128, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg:
+          {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha256, _, 4096, :aes_gcm_kw, 128, _, _}}
+      }) do
     "PBES2-HS256+A128GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha256, _, 4096, :aes_kw, 128, _, }
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha256, _, 4096, :aes_kw, 128, _}}
+      }) do
     "PBES2-HS256+A128KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha384, _, 6144, :aes_gcm_kw, 192, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg:
+          {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha384, _, 6144, :aes_gcm_kw, 192, _, _}}
+      }) do
     "PBES2-HS384+A192GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha384, _, 6144, :aes_kw, 192, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha384, _, 6144, :aes_kw, 192, _, _}}
+      }) do
     "PBES2-HS384+A192KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha512, _, 8192, :aes_gcm_kw, 256, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg:
+          {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha512, _, 8192, :aes_gcm_kw, 256, _, _}}
+      }) do
     "PBES2-HS512+A256GCMKW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha512, _, 8192, :aes_kw, 256, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha512, _, 8192, :aes_kw, 256, _, _}}
+      }) do
     "PBES2-HS512+A256KW"
   end
 
-  def jose_alg(
-    %JOSE.JWE{alg:
-      {:jose_jwe_alg_pbes2,
-        {:jose_jwe_alg_pbes2, :sha512,_, 8192, :c20p_kw, 256, _, _}
-      }
-    }
-  ) do
+  def jose_alg(%JOSE.JWE{
+        alg: {:jose_jwe_alg_pbes2, {:jose_jwe_alg_pbes2, :sha512, _, 8192, :c20p_kw, 256, _, _}}
+      }) do
     "PBES2-HS512+C20PKW"
   end
 
@@ -313,57 +247,42 @@ defmodule JOSEUtils.JWE do
   Returns the JOSE encryption algorithm name from a `%JOSE.JWE{}` structure
   """
   @spec jose_enc(%JOSE.JWE{}) :: JOSEUtils.JWA.enc_enc()
-  def jose_enc(
-    %JOSE.JWE{enc:
-      {:jose_jwe_enc_aes,
-        {:jose_jwe_enc_aes, {:aes_cbc, 128}, 256, _, _, _, _, _, :sha256}
-      }
-    }
-  ) do
+  def jose_enc(%JOSE.JWE{
+        enc:
+          {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_cbc, 128}, 256, _, _, _, _, _, :sha256}}
+      }) do
     "A128CBC-HS256"
   end
 
-  def jose_enc(
-    %JOSE.JWE{enc:
-      {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_gcm, 128}, 128, _, _, _, _, _, _}}
-    }
-  ) do
+  def jose_enc(%JOSE.JWE{
+        enc: {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_gcm, 128}, 128, _, _, _, _, _, _}}
+      }) do
     "A128GCM"
   end
 
-  def jose_enc(
-    %JOSE.JWE{enc:
-      {:jose_jwe_enc_aes,
-        {:jose_jwe_enc_aes, {:aes_cbc, 192}, 384, _, _, _, _, _, :sha384}
-      }
-    }
-  ) do
+  def jose_enc(%JOSE.JWE{
+        enc:
+          {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_cbc, 192}, 384, _, _, _, _, _, :sha384}}
+      }) do
     "A192CBC-HS384"
   end
 
-  def jose_enc(
-    %JOSE.JWE{enc:
-      {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_gcm, 192}, 192, _, _, _, _, _, _}}
-    }
-  ) do
+  def jose_enc(%JOSE.JWE{
+        enc: {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_gcm, 192}, 192, _, _, _, _, _, _}}
+      }) do
     "A192GCM"
   end
 
-  def jose_enc(
-    %JOSE.JWE{enc:
-      {:jose_jwe_enc_aes,
-        {:jose_jwe_enc_aes, {:aes_cbc, 256}, 512, _, _, _, _, _, :sha512}
-      }
-    }
-  ) do
+  def jose_enc(%JOSE.JWE{
+        enc:
+          {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_cbc, 256}, 512, _, _, _, _, _, :sha512}}
+      }) do
     "A256CBC-HS512"
   end
 
-  def jose_enc(
-    %JOSE.JWE{enc:
-      {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_gcm, 256}, 256, _, _, _, _, _, _}}
-    }
-  ) do
+  def jose_enc(%JOSE.JWE{
+        enc: {:jose_jwe_enc_aes, {:jose_jwe_enc_aes, {:aes_gcm, 256}, 256, _, _, _, _, _, _}}
+      }) do
     "A256GCM"
   end
 
