@@ -1,6 +1,6 @@
 defmodule JOSEUtils do
   @moduledoc """
-  FIXME
+  General functions to work with JOSE
   """
 
   @doc """

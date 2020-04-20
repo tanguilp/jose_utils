@@ -1,10 +1,12 @@
 defmodule JOSEUtils.JWS do
   @moduledoc """
-  Util function to work with signed JWTs
+  Convenience functions to work with signed JWTs
   """
 
   @typedoc """
-  Serialized JWS signed token, for instance:
+  Serialized JWS signed token
+
+  For instance:
 
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
   """

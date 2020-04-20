@@ -1,12 +1,14 @@
 defmodule JOSEUtils.JWK do
   @moduledoc """
-  Util functions to work with JWKs
+  Convenience functions to work with JWKs
   """
 
   alias JOSEUtils.JWA
 
   @typedoc """
-  A JSON Web Key, such as:
+  A JSON Web Key in its map form
+
+  For instance:
 
       %{
         "crv" => "P-256",

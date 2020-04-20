@@ -1,6 +1,6 @@
 defmodule JOSEUtils.JWKS do
   @moduledoc """
-  Util function to work with JWK sets
+  Convenience function to work with JWK sets
   """
 
   @type t :: [JOSEUtils.JWK.t()]

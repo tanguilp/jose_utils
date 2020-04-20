@@ -1,10 +1,12 @@
 defmodule JOSEUtils.JWE do
   @moduledoc """
-  Util function to work with encrypted JWTs
+  Convenience function to work with encrypted JWTs
   """
 
   @typedoc """
-  Serialized JWE encrypted token, for instance:
+  Serialized JWE encrypted token
+
+  For instance:
 
       "eyJhbGciOiJBMTI4R0NNS1ciLCJlbmMiOiJBMTI4R0NNIiwiaXYiOiJzODNFNjhPNjhsWlM5ZVprIiwidGFnIjoieF9Ea2M5dm1LMk5RQV8tU2hvTkFRdyJ9.8B2qX8fVEa-s61RsZXqkCg.J7yJ8sKLbUlzyor6.FRs.BhBwImTv9B14NwVuxmfU6A"
   """

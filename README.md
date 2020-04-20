@@ -1,6 +1,18 @@
 # JOSEUtils
 
-Helper functions to work with JOSE (JSON Object Signing and Encryption), including:
+Convenience functions to work with JOSE (JSON Object Signing and Encryption)
+
+## Installation
+
+```elixir
+def deps do
+  [
+    {:jose_utils, "~> 0.1.0"}
+  ]
+end
+```
+
+## Functions
 
 ### JWS
 
@@ -55,14 +67,4 @@ Helper functions to work with JOSE (JSON Object Signing and Encryption), includi
         alg_or_algs :: JOSEUtils.JWA.enc_alg() | [JOSEUtils.JWA.enc_alg()] | nil,
         enc_or_encs :: JOSEUtils.JWA.enc_enc() | [JOSEUtils.JWA.enc_enc()] | nil
       ) :: t()
-```
-
-## Installation
-
-```elixir
-def deps do
-  [
-    {:jose_utils, github: "tanguilp/jose_utils", tag: "v0.1.0"}
-  ]
-end
 ```

@@ -87,7 +87,7 @@ defmodule JOSEUtils.JWA do
   Returns the JOSE algorithm from aan X509 signature algorithm, or `nil` if it has no JOSE
   equivalent
   """
-  @spec x509_to_jose_sig_alg(tuple()) :: sig_alg() | nil
+  @spec x509_to_jose_sig_alg(x509_alg :: tuple()) :: sig_alg() | nil
   def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 11}), do: "RS256"
   def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 12}), do: "RS384"
   def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 13}), do: "RS512"
