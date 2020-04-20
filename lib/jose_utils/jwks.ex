@@ -8,7 +8,9 @@ defmodule JOSEUtils.JWKS do
   @doc """
   Returns the keys suitable for signature from a JWK set
 
-  Note that it does **not** return the keys suitable for signature verification
+  Note that it does **not** return the keys suitable only for signature verification.
+
+  MAC keys are considered signature keys, and are returned as well.
   """
   @spec signature_keys(
           t(),
@@ -34,6 +36,8 @@ defmodule JOSEUtils.JWKS do
 
   @doc """
   Returns the keys suitable for signature **verification** from a JWK set
+
+  MAC keys are considered verification keys, and are returned as well.
   """
   @spec verification_keys(
           t(),

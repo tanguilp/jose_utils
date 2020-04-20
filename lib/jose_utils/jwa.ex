@@ -82,4 +82,18 @@ defmodule JOSEUtils.JWA do
   - "XC20P"
   """
   @type enc_enc :: String.t()
+
+  @doc """
+  Returns the JOSE algorithm from aan X509 signature algorithm, or `nil` if it has no JOSE
+  equivalent
+  """
+  @spec x509_to_jose_sig_alg(tuple()) :: sig_alg() | nil
+  def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 11}), do: "RS256"
+  def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 12}), do: "RS384"
+  def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 13}), do: "RS512"
+  def x509_to_jose_sig_alg({1, 2, 840, 10045, 4, 3, 2}), do: "ES256"
+  def x509_to_jose_sig_alg({1, 2, 840, 10045, 4, 3, 3}), do: "ES384"
+  def x509_to_jose_sig_alg({1, 2, 840, 10045, 4, 3, 4}), do: "ES512"
+  def x509_to_jose_sig_alg({1, 2, 840, 113_549, 1, 1, 5}), do: "RSA1_5"
+  def x509_to_jose_sig_alg(_), do: nil
 end

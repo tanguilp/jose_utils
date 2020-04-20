@@ -3,6 +3,8 @@ defmodule JOSEUtils.JWK do
   Util functions to work with JWKs
   """
 
+  alias JOSEUtils.JWA
+
   @typedoc """
   A JSON Web Key, such as:
 
@@ -25,7 +27,6 @@ defmodule JOSEUtils.JWK do
   @doc """
   Returns the digest used by a signature algorithm of the key
   """
-  # :crypto.hash_algorithm()
   @spec sig_alg_digest(t()) :: atom()
   def sig_alg_digest(%{"alg" => "EdDSA", "crv" => "Ed25519"}), do: :sha256
   def sig_alg_digest(%{"alg" => "EdDSA", "crv" => "Ed448"}), do: :sha3_256
@@ -68,8 +69,6 @@ defmodule JOSEUtils.JWK do
       :ok
     end
   end
-
-  # FIXME: should be check certificate expiration?
 
   @spec verify_x5c(t()) :: result()
   defp verify_x5c(%{"x5c" => [_ | _]} = jwk) do
@@ -124,7 +123,7 @@ defmodule JOSEUtils.JWK do
       _
     } = cert
 
-    if to_jose_alg(otp_sig_alg) == alg do
+    if JWA.x509_to_jose_sig_alg(otp_sig_alg) == alg do
       :ok
     else
       {:error, :x5c_non_matching_algs}
@@ -134,16 +133,6 @@ defmodule JOSEUtils.JWK do
   defp verify_alg(_, _) do
     :ok
   end
-
-  @spec to_jose_alg(tuple()) :: String.t() | nil
-  defp to_jose_alg({1, 2, 840, 113_549, 1, 1, 11}), do: "RS256"
-  defp to_jose_alg({1, 2, 840, 113_549, 1, 1, 12}), do: "RS384"
-  defp to_jose_alg({1, 2, 840, 113_549, 1, 1, 13}), do: "RS512"
-  defp to_jose_alg({1, 2, 840, 10045, 4, 3, 2}), do: "ES256"
-  defp to_jose_alg({1, 2, 840, 10045, 4, 3, 3}), do: "ES384"
-  defp to_jose_alg({1, 2, 840, 10045, 4, 3, 4}), do: "ES512"
-  defp to_jose_alg({1, 2, 840, 113_549, 1, 1, 5}), do: "RSA1_5"
-  defp to_jose_alg(_), do: nil
 
   @spec verify_use(%JOSE.JWK{}, certificate()) :: result()
   defp verify_use(%JOSE.JWK{fields: %{"use" => key_usage}}, cert) do
