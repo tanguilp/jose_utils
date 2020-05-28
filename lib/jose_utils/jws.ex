@@ -3,6 +3,8 @@ defmodule JOSEUtils.JWS do
   Convenience functions to work with signed JWTs
   """
 
+  alias JOSEUtils.{JWA, JWK}
+
   @typedoc """
   Serialized JWS signed token
 
@@ -11,6 +13,62 @@ defmodule JOSEUtils.JWS do
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
   """
   @type serialized :: String.t()
+
+  @doc """
+  Signs a payload with a JWK and a given signing algorithm
+
+  The payload can be a string, in which case it is signed directly, or any other data type
+  which will first be converted into text using JSON serialization.
+
+  Notice that additional headers from the JWK or the `additional_headers` parameters are
+  **not** serialized into the result JWS, because of lack of support by the underlying
+  library.
+
+  ## Example
+
+      iex> jwk = %{"k" => "FWTNVgrQyQyZmduoAVyOfI1myMs", "kty" => "oct"}
+      %{"k" => "FWTNVgrQyQyZmduoAVyOfI1myMs", "kty" => "oct"}
+      iex> JOSEUtils.JWS.sign("some text", jwk, "HS256")
+      {:ok, "eyJhbGciOiJIUzI1NiJ9.c29tZSB0ZXh0.2L2wNRpAOw92LSAII2PQ9_y9zi2YD9NfjJuGBpNkVBE"}
+  """
+  @spec sign(
+    payload :: any(),
+    JWK.t(),
+    JWA.sig_alg(),
+    additional_headers :: %{optional(String.t()) => any()}
+  ) :: {:ok, serialized()} | {:error, Exception.t()}
+  def sign(payload, jwk, sig_alg, additional_headers \\ %{}) do
+    {:ok, sign!(payload, jwk, sig_alg, additional_headers)}
+  rescue
+    e ->
+      {:error, e}
+  end
+
+  @doc """
+  See `sign/4`
+  """
+  @spec sign!(
+    payload :: any(),
+    JWK.t(),
+    JWA.sig_alg(),
+    header :: %{optional(String.t()) => any()}
+  ) :: serialized()
+  def sign!(payload, jwk, sig_alg, additional_headers \\ %{})
+
+  def sign!(<<_::binary>> = payload, jwk, sig_alg, additional_headers) do
+    jwk
+    |> JOSE.JWK.from_map()
+    |> Map.update(:fields, additional_headers, &(Map.merge(&1, additional_headers)))
+    |> JOSE.JWS.sign(payload, %{"alg" => sig_alg})
+    |> JOSE.JWS.compact()
+    |> elem(1)
+  end
+
+  def sign!(payload, jwk, sig_alg, additional_headers) do
+    payload
+    |> Jason.encode!()
+    |> sign!(jwk, sig_alg, additional_headers)
+  end
 
   @doc """
   Verifies the signature of a JWS, and returns its content and the signature key

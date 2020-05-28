@@ -19,12 +19,108 @@ defmodule JOSEUtils.JWK do
   """
   @type t :: %{required(String.t()) => any()}
 
-  @type alg :: String.t()
-
   # X509.Certificate.t()
   @type certificate :: any()
 
+  @type key_selector :: [key_selector_opt()]
+
+  @type key_selector_opt ::
+  {:alg, JWA.sig_alg() | JWA.enc_alg | [JWA.sig_alg()] | [JWA.enc_alg()]}
+  | {:enc, JWA.enc_enc() | [JWA.enc_enc()]}
+  | {:key_ops, key_op() | [key_op()]}
+  | {:kid, kid()}
+  | {:kty, kty()}
+  | {:use, use()}
+
+  @type kty :: String.t()
+  @type use :: String.t()
+  @type key_op :: String.t()
+  @type kid :: String.t()
+
   @type result :: :ok | {:error, atom()}
+
+  @doc """
+  Returns `true` if the key conforms to the key selector specification, `false` otherwise
+
+  ## Examples
+
+      iex> import JOSEUtils.JWK
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([kid: "abc"])
+      false
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([kty: "EC"])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([kty: "RSA"])
+      false
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([use: "sig"])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([use: "enc"])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([key_ops: "a"])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([key_ops: "sign"])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([alg: ["ES256", "ES512"]])
+      true
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"alg" => "ES384"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([alg: ["ES256", "ES512"]])
+      false
+  """
+  @spec match_key_selector?(t(), key_selector()) :: boolean()
+  def match_key_selector?(%{} = jwk, key_selector) do
+    key_selector =
+      key_selector
+      |> Enum.into(%{})
+      |> simple_value_to_list(:alg)
+      |> simple_value_to_list(:enc)
+      |> simple_value_to_list(:key_ops)
+
+    do_match_key_selector?(jwk, key_selector)
+  end
+
+  defp simple_value_to_list(key_selector, field) do
+    case key_selector[field] do
+      <<_::binary>> = value ->
+        Map.put(key_selector, field, [value])
+
+      _ ->
+        key_selector
+    end
+  end
+
+  defp do_match_key_selector?(%{"kid" => kid}, %{kid: kid}) do
+    true
+  end
+
+  defp do_match_key_selector?(_, %{kid: _}) do
+    false
+  end
+
+  defp do_match_key_selector?(jwk, key_selector) do
+    key_selector_use_valid?(jwk, key_selector) and
+    key_selector_key_ops_valid?(jwk, key_selector) and
+    key_selector_kty_valid?(jwk, key_selector) and
+    key_selector_alg_valid?(jwk, key_selector) and
+    key_selector_enc_valid?(jwk, key_selector)
+  end
+
+  defp key_selector_use_valid?(%{"use" => use}, %{use: use}), do: true
+  defp key_selector_use_valid?(%{"use" => _}, %{use: _}), do: false
+  defp key_selector_use_valid?(_, _), do: true
+
+  defp key_selector_key_ops_valid?(%{"key_ops" => jwk_key_ops}, %{key_op: key_ops}),
+    do: Enum.any?(key_ops, fn key_op -> key_op in jwk_key_ops end)
+  defp key_selector_key_ops_valid?(_, _), do: true
+
+  defp key_selector_kty_valid?(%{"kty" => kty}, %{kty: kty}), do: true
+  defp key_selector_kty_valid?(%{"kty" => _}, %{kty: _}), do: false
+  defp key_selector_kty_valid?(_, _), do: true
+
+  defp key_selector_alg_valid?(%{"alg" => alg}, %{alg: algs}), do: alg in algs
+  defp key_selector_alg_valid?(_, _), do: true
+
+  defp key_selector_enc_valid?(%{"enc" => enc}, %{alg: encs}), do: enc in encs
+  defp key_selector_enc_valid?(_, _), do: true
 
   @doc """
   Returns the digest used by a signature algorithm of the key
@@ -44,6 +140,26 @@ defmodule JOSEUtils.JWK do
   def sig_alg_digest(%{"alg" => "RS256"}), do: :sha256
   def sig_alg_digest(%{"alg" => "RS384"}), do: :sha384
   def sig_alg_digest(%{"alg" => "RS512"}), do: :sha512
+
+  @doc """
+  Returns the public key from a private key
+
+  For `"oct"` symmetrical keys, it returns all fields except the `"k"` private secret.
+  It is recommended to have the `"kid"` attribute set in this case, otherwise the key
+  is indistinguishable from other similar symmetrical keys.
+  """
+  @spec to_public(t()) :: t()
+  def to_public(%{"kty" => "oct"} = jwk_oct) do
+    Map.delete(jwk_oct, "k")
+  end
+
+  def to_public(jwk) do
+    jwk
+    |> JOSE.JWK.from_map()
+    |> JOSE.JWK.to_public()
+    |> JOSE.JWK.to_map()
+    |> elem(1)
+  end
 
   @doc """
   Verifies a JWK
@@ -90,6 +206,9 @@ defmodule JOSEUtils.JWK do
       {:error, _} = error ->
         error
     end
+  rescue
+    _ ->
+      {:error, :invalid_jwk}
   end
 
   defp verify_x5c(%{"x5c" => _}) do

@@ -3,6 +3,8 @@ defmodule JOSEUtils.JWE do
   Convenience function to work with encrypted JWTs
   """
 
+  alias JOSEUtils.{JWA, JWK}
+
   @typedoc """
   Serialized JWE encrypted token
 
@@ -11,6 +13,49 @@ defmodule JOSEUtils.JWE do
       "eyJhbGciOiJBMTI4R0NNS1ciLCJlbmMiOiJBMTI4R0NNIiwiaXYiOiJzODNFNjhPNjhsWlM5ZVprIiwidGFnIjoieF9Ea2M5dm1LMk5RQV8tU2hvTkFRdyJ9.8B2qX8fVEa-s61RsZXqkCg.J7yJ8sKLbUlzyor6.FRs.BhBwImTv9B14NwVuxmfU6A"
   """
   @type serialized :: String.t()
+
+  @doc """
+  Encrypts a payload with a JWK given an key derivation algorithm and an encryption
+  algorithm
+
+  The payload can be a string, in which case it is signed directly, or any other data type
+  which will first be converted into text using JSON serialization.
+
+  Notice that additional headers from the JWK or the `additional_headers` parameters are
+  **not** serialized into the result JWE, because of lack of support by the underlying
+  library.
+  """
+  @spec encrypt(
+    payload :: any(),
+    JWK.t(),
+    JWA.enc_alg(),
+    JWA.enc_enc(),
+    header :: %{optional(String.t()) => any()}
+  ) :: {:ok, serialized()} | {:error, Exception.t()}
+  def encrypt(payload, jwk, alg, enc, additional_headers \\ %{}) do
+    {:ok, encrypt!(payload, jwk, alg, enc, additional_headers)}
+  rescue
+    e ->
+      {:error, e}
+  end
+
+  @spec encrypt!(
+    payload :: any(),
+    JWK.t(),
+    JWA.enc_alg(),
+    JWA.enc_enc(),
+    header :: %{optional(String.t()) => any()}
+  ) :: serialized()
+  def encrypt!(payload, jwk, alg, enc, headers \\ %{})
+
+  def encrypt!(payload, jwk, alg, enc, additional_headers) do
+    jwk
+    |> JOSE.JWK.from_map()
+    |> Map.update(:fields, additional_headers, &(Map.merge(&1, additional_headers)))
+    |> JOSE.JWE.block_encrypt(payload, %{"alg" => alg, "enc" => enc})
+    |> JOSE.JWE.compact()
+    |> elem(1)
+  end
 
   @doc """
   Decrypts a JWE encrypted token and returns the decryption key

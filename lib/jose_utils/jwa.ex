@@ -7,8 +7,6 @@ defmodule JOSEUtils.JWA do
   Signature algorithm
 
   One of:
-  - "Ed25519"
-  - "Ed448"
   - "EdDSA"
   - "ES256"
   - "ES384"
