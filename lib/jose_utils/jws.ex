@@ -15,6 +15,38 @@ defmodule JOSEUtils.JWS do
   @type serialized :: String.t()
 
   @doc """
+  Returns `:mac` if the JWS uses a MAC signature algoithm, `:public_key_crypto` otherwise
+
+  ## Example
+
+      iex> JOSE.JWS.sign(JOSE.JWK.generate_key({:ec, "P-256"}), "toto", %{"alg" => "ES256"})
+      ...> |> JOSE.JWS.compact()
+      ...> |> elem(1)
+      ...> |> JOSEUtils.JWS.sig_alg_type()
+      :public_key_crypto
+
+      iex> JOSE.JWS.sign(JOSE.JWK.generate_key({:oct, 32}), "toto", %{"alg" => "HS256"})
+      ...> |> JOSE.JWS.compact()
+      ...> |> elem(1)
+      ...> |> JOSEUtils.JWS.sig_alg_type()
+      :mac
+
+  """
+  @spec sig_alg_type(serialized()) :: :public_key_crypto | :mac
+  def sig_alg_type(<<_::binary>> = jws) do
+    jws
+    |> JOSE.JWS.peek_protected()
+    |> Jason.decode!()
+    |> case do
+      %{"alg" => alg} when alg in ["HS256", "HS384", "HS512"] ->
+        :mac
+
+      _ ->
+        :public_key_crypto
+    end
+  end
+
+  @doc """
   Signs a payload with a JWK and a given signing algorithm
 
   The payload can be a string, in which case it is signed directly, or any other data type
