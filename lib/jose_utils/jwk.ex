@@ -40,6 +40,54 @@ defmodule JOSEUtils.JWK do
   @type result :: :ok | {:error, atom()}
 
   @doc """
+  Returns the key type for an algorithm or `nil` for the `"none"` and `"dir"` algorithms
+
+  ## Example
+
+      iex> JOSEUtils.JWK.key_type_for_alg("RS512")
+      "RSA"
+
+      iex> JOSEUtils.JWK.key_type_for_alg("ECDH-ES+A128KW")
+      "EC"
+
+      iex> JOSEUtils.JWK.key_type_for_alg("dir")
+      nil
+  """
+  @spec key_type_for_alg(JWA.sig_alg() | JWA.enc_alg()) :: kty()
+  def key_type_for_alg("HS256"), do: "oct"
+  def key_type_for_alg("HS384"), do: "oct"
+  def key_type_for_alg("HS512"), do: "oct"
+  def key_type_for_alg("RS256"), do: "RSA"
+  def key_type_for_alg("RS384"), do: "RSA"
+  def key_type_for_alg("RS512"), do: "RSA"
+  def key_type_for_alg("ES256"), do: "EC"
+  def key_type_for_alg("ES384"), do: "EC"
+  def key_type_for_alg("ES512"), do: "EC"
+  def key_type_for_alg("PS256"), do: "RSA"
+  def key_type_for_alg("PS384"), do: "RSA"
+  def key_type_for_alg("PS512"), do: "RSA"
+  def key_type_for_alg("none"), do: nil
+  def key_type_for_alg("RSA1_5"), do: "RSA"
+  def key_type_for_alg("RSA-OAEP"), do: "RSA"
+  def key_type_for_alg("RSA-OAEP-256"), do: "RSA"
+  def key_type_for_alg("A128KW"), do: "oct"
+  def key_type_for_alg("A192KW"), do: "oct"
+  def key_type_for_alg("A256KW"), do: "oct"
+  def key_type_for_alg("dir"), do: nil
+  def key_type_for_alg("ECDH-ES"), do: "EC"
+  def key_type_for_alg("ECDH-ES+A128KW"), do: "EC"
+  def key_type_for_alg("ECDH-ES+A192KW"), do: "EC"
+  def key_type_for_alg("ECDH-ES+A256KW"), do: "EC"
+  def key_type_for_alg("A128GCMKW"), do: "oct"
+  def key_type_for_alg("A192GCMKW"), do: "oct"
+  def key_type_for_alg("A256GCMKW"), do: "oct"
+  def key_type_for_alg("PBES2-HS256+A128KW"), do: "oct"
+  def key_type_for_alg("PBES2-HS384+A192KW"), do: "oct"
+  def key_type_for_alg("PBES2-HS512+A256KW"), do: "oct"
+  def key_type_for_alg("EdDSA"), do: "OKP"
+  def key_type_for_alg("ES256K"), do: "EC"
+
+  @doc """
   Returns `true` if the key conforms to the key selector specification, `false` otherwise
 
   ## Examples
@@ -117,6 +165,8 @@ defmodule JOSEUtils.JWK do
   defp key_selector_kty_valid?(_, _), do: true
 
   defp key_selector_alg_valid?(%{"alg" => alg}, %{alg: algs}), do: alg in algs
+  defp key_selector_alg_valid?(%{"kty" => kty}, %{alg: algs}),
+    do: Enum.any?(algs, fn alg -> key_type_for_alg(alg) == kty end)
   defp key_selector_alg_valid?(_, _), do: true
 
   defp key_selector_enc_valid?(%{"enc" => enc}, %{alg: encs}), do: enc in encs

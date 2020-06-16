@@ -90,8 +90,7 @@ defmodule JOSEUtils.JWS do
   def sign!(<<_::binary>> = payload, jwk, sig_alg, additional_headers) do
     jwk
     |> JOSE.JWK.from_map()
-    |> Map.update(:fields, additional_headers, &(Map.merge(&1, additional_headers)))
-    |> JOSE.JWS.sign(payload, %{"alg" => sig_alg})
+    |> JOSE.JWS.sign(payload, Map.merge(additional_headers, %{"alg" => sig_alg}))
     |> JOSE.JWS.compact()
     |> elem(1)
   end

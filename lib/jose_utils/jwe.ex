@@ -14,6 +14,8 @@ defmodule JOSEUtils.JWE do
   """
   @type serialized :: String.t()
 
+  @ecdh_algs ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]
+
   @doc """
   Encrypts a payload with a JWK given an key derivation algorithm and an encryption
   algorithm
@@ -27,7 +29,7 @@ defmodule JOSEUtils.JWE do
   """
   @spec encrypt(
     payload :: any(),
-    JWK.t(),
+    JWK.t() | {JWK.t(), JWK.t()},
     JWA.enc_alg(),
     JWA.enc_enc(),
     header :: %{optional(String.t()) => any()}
@@ -41,20 +43,43 @@ defmodule JOSEUtils.JWE do
 
   @spec encrypt!(
     payload :: any(),
-    JWK.t(),
+    JWK.t() | {JWK.t(), JWK.t()},
     JWA.enc_alg(),
     JWA.enc_enc(),
     header :: %{optional(String.t()) => any()}
   ) :: serialized()
   def encrypt!(payload, jwk, alg, enc, headers \\ %{})
 
-  def encrypt!(payload, jwk, alg, enc, additional_headers) do
+  def encrypt!(<<_::binary>> = payload, %{} = jwk, alg, enc, additional_headers) do
     jwk
     |> JOSE.JWK.from_map()
-    |> Map.update(:fields, additional_headers, &(Map.merge(&1, additional_headers)))
-    |> JOSE.JWE.block_encrypt(payload, %{"alg" => alg, "enc" => enc})
+    |> JOSE.JWE.block_encrypt(
+      payload,
+      Map.merge(additional_headers, %{"alg" => alg, "enc" => enc})
+    )
     |> JOSE.JWE.compact()
     |> elem(1)
+  end
+
+  def encrypt!(<<_::binary>> = payload, {jwk_sk, jwk_pk}, alg, enc, additional_headers)
+    when alg in @ecdh_algs
+  do
+    jwk_sk = JOSE.JWK.from_map(jwk_sk)
+    jwk_pk = JOSE.JWK.from_map(jwk_pk)
+
+    JOSE.JWE.block_encrypt(
+      {jwk_sk, jwk_pk},
+      payload,
+      Map.merge(additional_headers, %{"alg" => alg, "enc" => enc})
+    )
+    |> JOSE.JWE.compact()
+    |> elem(1)
+  end
+
+  def encrypt!(payload, jwk, alg, enc, additional_headers) do
+    payload
+    |> Jason.encode!()
+    |> encrypt!(jwk, alg, enc, additional_headers)
   end
 
   @doc """
