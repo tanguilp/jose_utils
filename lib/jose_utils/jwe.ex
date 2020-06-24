@@ -16,6 +16,36 @@ defmodule JOSEUtils.JWE do
 
   @ecdh_algs ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]
 
+  defmodule MalformedError do
+    defexception message: "malformed JWE"
+  end
+
+  @doc """
+  Returns the unverified header
+
+  It ensures that the `"alg"` and `"enc"` mandatory parameters are present.
+
+  ## Examples
+
+      iex> JOSEUtils.JWE.peek_header("eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..jBt5tTa1Q0N3uFPEkf30MQ.Ei49MvTLLje7bsZ5EZCZMA.gMWOAmhZSq9ksHCZm6VSoA")
+      {:ok, %{"alg" => "dir", "enc" => "A128CBC-HS256"}}
+
+      iex> JOSEUtils.JWE.peek_header("this is obviously invalid")
+      {:error, %JOSEUtils.JWE.MalformedError{message: "malformed JWE"}}
+  """
+  @spec peek_header(serialized()) ::
+  {:ok, %{optional(String.t()) => any()}} | {:error, Exception.t()}
+  def peek_header(<<_::binary>> = jwe) do
+    with {_, expanded} = JOSE.JWE.expand(jwe),
+         protected_b64 = Map.get(expanded, "protected"),
+         {:ok, protected_str} = Base.url_decode64(protected_b64, padding: false) do
+      {:ok, %{"alg" => _, "enc" => _}} = Jason.decode(protected_str)
+    end
+  rescue
+    _ ->
+      {:error, %MalformedError{}}
+  end
+
   @doc """
   Encrypts a payload with a JWK given an key derivation algorithm and an encryption
   algorithm
@@ -96,9 +126,7 @@ defmodule JOSEUtils.JWE do
       iex> JOSEUtils.JWE.decrypt(encrypted_a256gcmkw, jwk_oct256_map, ["A256KW"], ["A256GCM"])
       :error
       iex> JOSEUtils.JWE.decrypt(encrypted_a256gcmkw, jwk_oct256_map, ["A256KW", "A256GCMKW"], ["A256GCM"])
-      {:ok,
-       {"{}", %{"k" => "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "kty" => "oct"}}}
-
+      {:ok, {"{}", %{"kty" => "oct"}}}
   """
   @spec decrypt(
           jwe :: serialized(),
@@ -111,31 +139,27 @@ defmodule JOSEUtils.JWE do
   end
 
   def decrypt(jwe, jwks, allowed_algs, allowed_encs) do
-    case String.split(jwe, ".") do
-      [header_b64, _, _, _, _] ->
-        with {:ok, header_str} <- Base.decode64(header_b64, padding: false),
-             {:ok, header} <- Jason.decode(header_str),
-             true <- header["alg"] in allowed_algs,
-             true <- header["enc"] in allowed_encs do
-          jwks =
-            case header do
-              %{"alg" => _, "kid" => jwe_kid} ->
-                Enum.filter(jwks, fn jwk -> jwk["kid"] == jwe_kid end)
+    with {:ok, header} <- peek_header(jwe),
+         true <- header["alg"] in allowed_algs,
+         true <- header["enc"] in allowed_encs do
+      jwks =
+        case header do
+          %{"alg" => _, "kid" => jwe_kid} ->
+            Enum.filter(jwks, fn jwk -> jwk["kid"] == jwe_kid end)
 
-              _ ->
-                jwks
-            end
-            |> JOSEUtils.JWKS.decryption_keys(header["alg"], header["enc"])
-
-          do_decrypt(jwe, header, jwks)
-        else
           _ ->
-            :error
+            jwks
         end
+        |> JOSEUtils.JWKS.decryption_keys(header["alg"], header["enc"])
 
+      do_decrypt(jwe, header, jwks)
+    else
       _ ->
         :error
     end
+  rescue
+    _ ->
+      :error
   end
 
   @spec do_decrypt(
@@ -147,7 +171,7 @@ defmodule JOSEUtils.JWE do
     case JOSE.JWE.block_decrypt(JOSE.JWK.from_map(jwk), jwe) do
       {message, %JOSE.JWE{} = jose_jwe} when is_binary(message) ->
         if jose_alg(jose_jwe) == header["alg"] and jose_enc(jose_jwe) == header["enc"] do
-          {:ok, {message, jwk}}
+          {:ok, {message, JWK.to_public(jwk)}}
         else
           :error
         end

@@ -14,6 +14,34 @@ defmodule JOSEUtils.JWS do
   """
   @type serialized :: String.t()
 
+  defmodule MalformedError do
+    defexception message: "malformed JWS"
+  end
+
+  @doc """
+  Returns the unverified header
+
+  It ensures the `"alg"` parameter is set.
+
+  ## Example
+
+      iex> JOSEUtils.JWS.peek_header("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dMAojPMVbFvvkouYUSI9AxIRBxgqretQMCvNF7KmTHU")
+      {:ok, %{"alg" => "HS256", "typ" => "JWT"}}
+
+      iex> JOSEUtils.JWS.peek_header("probably invalid...?")
+      {:error, %JOSEUtils.JWS.MalformedError{message: "malformed JWS"}}
+  """
+  @spec peek_header(serialized()) ::
+  {:ok, %{optional(String.t()) => any()}} | {:error, Exception.t()}
+  def peek_header(<<_::binary>> = jws) do
+    protected_str = JOSE.JWS.peek_protected(jws)
+
+    {:ok, %{"alg" => _}} = Jason.decode(protected_str)
+  rescue
+    _ ->
+      {:error, %MalformedError{}}
+  end
+
   @doc """
   Returns `:mac` if the JWS uses a MAC signature algoithm, `:public_key_crypto` otherwise
 
@@ -59,7 +87,6 @@ defmodule JOSEUtils.JWS do
   ## Example
 
       iex> jwk = %{"k" => "FWTNVgrQyQyZmduoAVyOfI1myMs", "kty" => "oct"}
-      %{"k" => "FWTNVgrQyQyZmduoAVyOfI1myMs", "kty" => "oct"}
       iex> JOSEUtils.JWS.sign("some text", jwk, "HS256")
       {:ok, "eyJhbGciOiJIUzI1NiJ9.c29tZSB0ZXh0.2L2wNRpAOw92LSAII2PQ9_y9zi2YD9NfjJuGBpNkVBE"}
   """
@@ -110,12 +137,12 @@ defmodule JOSEUtils.JWS do
 
   ## Example
       iex> JOSE.crypto_fallback(true)
-      iex> jwk_ed25519   = JOSE.JWK.generate_key({:okp, :Ed25519})
+      iex> jwk_ed25519 = JOSE.JWK.generate_key({:okp, :Ed25519})
       iex> jwk_ed25519_map = jwk_ed25519 |> JOSE.JWK.to_map() |> elem(1)
-      iex> signed_ed25519 = JOSE.JWS.sign(jwk_ed25519, "{}", %{ "alg" => "Ed25519" }) |> JOSE.JWS.compact |> elem(1)
+      iex> signed_ed25519 = JOSE.JWS.sign(jwk_ed25519, "{}", %{ "alg" => "EdDSA" }) |> JOSE.JWS.compact |> elem(1)
       iex> JOSEUtils.JWS.verify(signed_ed25519, jwk_ed25519_map, ["RS256"])
       :error
-      iex> JOSEUtils.JWS.verify(signed_ed25519, jwk_ed25519_map, ["Ed25519"]) |> elem(0)
+      iex> JOSEUtils.JWS.verify(signed_ed25519, jwk_ed25519_map, ["EdDSA"]) |> elem(0)
       :ok
   """
   @spec verify(

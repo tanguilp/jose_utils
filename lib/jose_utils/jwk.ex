@@ -29,7 +29,7 @@ defmodule JOSEUtils.JWK do
   | {:enc, JWA.enc_enc() | [JWA.enc_enc()]}
   | {:key_ops, key_op() | [key_op()]}
   | {:kid, kid()}
-  | {:kty, kty()}
+  | {:kty, kty() | [kty()]}
   | {:use, use()}
 
   @type kty :: String.t()
@@ -66,6 +66,8 @@ defmodule JOSEUtils.JWK do
   def key_type_for_alg("PS256"), do: "RSA"
   def key_type_for_alg("PS384"), do: "RSA"
   def key_type_for_alg("PS512"), do: "RSA"
+  def key_type_for_alg("EdDSA"), do: "OKP"
+  def key_type_for_alg("ES256K"), do: "EC"
   def key_type_for_alg("none"), do: nil
   def key_type_for_alg("RSA1_5"), do: "RSA"
   def key_type_for_alg("RSA-OAEP"), do: "RSA"
@@ -84,34 +86,40 @@ defmodule JOSEUtils.JWK do
   def key_type_for_alg("PBES2-HS256+A128KW"), do: "oct"
   def key_type_for_alg("PBES2-HS384+A192KW"), do: "oct"
   def key_type_for_alg("PBES2-HS512+A256KW"), do: "oct"
-  def key_type_for_alg("EdDSA"), do: "OKP"
-  def key_type_for_alg("ES256K"), do: "EC"
 
   @doc """
   Returns `true` if the key conforms to the key selector specification, `false` otherwise
 
   ## Examples
 
-      iex> import JOSEUtils.JWK
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([])
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([kid: "abc"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([kid: "abc"])
       false
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([kty: "EC"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([kty: "EC"])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([kty: "RSA"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([kty: "RSA"])
       false
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([use: "sig"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([use: "sig"])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([use: "enc"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([use: "enc"])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([key_ops: "a"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([key_ops: "a"])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([key_ops: "sign"])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([key_ops: "sign"])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([alg: ["ES256", "ES512"]])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"kid" => "key_id"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([alg: ["ES256", "ES512"]])
       true
-      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"alg" => "ES384"}) |> JOSE.JWK.to_map |> elem(1) |> match_key_selector?([alg: ["ES256", "ES512"]])
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> Map.put(:fields, %{"alg" => "ES384"}) |> JOSE.JWK.to_map |> elem(1) |> JOSEUtils.JWK.match_key_selector?([alg: ["ES256", "ES512"]])
       false
   """
   @spec match_key_selector?(t(), key_selector()) :: boolean()
@@ -122,6 +130,7 @@ defmodule JOSEUtils.JWK do
       |> simple_value_to_list(:alg)
       |> simple_value_to_list(:enc)
       |> simple_value_to_list(:key_ops)
+      |> simple_value_to_list(:kty)
 
     do_match_key_selector?(jwk, key_selector)
   end
@@ -160,13 +169,12 @@ defmodule JOSEUtils.JWK do
     do: Enum.any?(key_ops, fn key_op -> key_op in jwk_key_ops end)
   defp key_selector_key_ops_valid?(_, _), do: true
 
-  defp key_selector_kty_valid?(%{"kty" => kty}, %{kty: kty}), do: true
-  defp key_selector_kty_valid?(%{"kty" => _}, %{kty: _}), do: false
+  defp key_selector_kty_valid?(%{"kty" => kty}, %{kty: ktys}), do: kty in ktys
   defp key_selector_kty_valid?(_, _), do: true
 
-  defp key_selector_alg_valid?(%{"alg" => alg}, %{alg: algs}), do: alg in algs
-  defp key_selector_alg_valid?(%{"kty" => kty}, %{alg: algs}),
-    do: Enum.any?(algs, fn alg -> key_type_for_alg(alg) == kty end)
+  defp key_selector_alg_valid?(%{"alg" => alg}, %{alg: algs}) when is_list(algs), do: alg in algs
+  defp key_selector_alg_valid?(jwk, %{alg: algs}) when is_list(algs),
+    do: Enum.any?(algs, &(&1 in sig_algs_supported(jwk) or &1 in enc_algs_supported(jwk)))
   defp key_selector_alg_valid?(_, _), do: true
 
   defp key_selector_enc_valid?(%{"enc" => enc}, %{alg: encs}), do: enc in encs
@@ -197,6 +205,14 @@ defmodule JOSEUtils.JWK do
   For `"oct"` symmetrical keys, it returns all fields except the `"k"` private secret.
   It is recommended to have the `"kid"` attribute set in this case, otherwise the key
   is indistinguishable from other similar symmetrical keys.
+
+  ## Examples
+
+      iex> match?(%{"kty" => "EC", "crv" => "P-521"}, JOSE.JWK.generate_key({:ec, "P-521"}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.to_public())
+      true
+
+      iex> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.to_public()                                                
+      %{"kty" => "oct"}
   """
   @spec to_public(t()) :: t()
   def to_public(%{"kty" => "oct"} = jwk_oct) do
@@ -210,6 +226,108 @@ defmodule JOSEUtils.JWK do
     |> JOSE.JWK.to_map()
     |> elem(1)
   end
+
+  @doc """
+  Returns the list of supported signature algorithms for a given JWK
+
+  ## Example
+  
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["ES256"]
+
+      iex> JOSE.JWK.generate_key({:ec, "P-521"}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["ES512"]
+
+      iex> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["HS256"]
+
+      iex> JOSE.JWK.generate_key({:oct, 48}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["HS256", "HS384"]
+
+      iex> JOSE.JWK.generate_key({:oct, 47}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["HS256"]
+
+      iex> JOSE.JWK.generate_key({:oct, 64}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["HS256", "HS384", "HS512"]
+
+      iex> JOSE.JWK.generate_key({:rsa,2048}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512"]
+
+      iex> JOSE.crypto_fallback(true)
+      iex> JOSE.JWK.generate_key({:okp, :Ed25519}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
+      ["EdDSA"]
+  """
+  @spec sig_algs_supported(t()) :: [JWA.sig_alg()]
+  def sig_algs_supported(%{"alg" => alg}), do: [alg]
+  def sig_algs_supported(%{"kty" => "RSA"}),
+    do: ["RS256", "RS384", "RS512", "PS256", "PS384", "PS512"]
+  def sig_algs_supported(%{"kty" => "EC", "crv" => "P-256"}), do: ["ES256"]
+  def sig_algs_supported(%{"kty" => "EC", "crv" => "P-384"}), do: ["ES384"]
+  def sig_algs_supported(%{"kty" => "EC", "crv" => "P-521"}), do: ["ES512"]
+  def sig_algs_supported(%{"kty" => "EC", "crv" => "secp256k1"}), do: ["ES256K"]
+  def sig_algs_supported(%{"kty" => "OKP", "crv" => "Ed25519"}), do: ["EdDSA"]
+  def sig_algs_supported(%{"kty" => "OKP", "crv" => "Ed448"}), do: ["EdDSA"]
+  def sig_algs_supported(%{"kty" => "oct", "k" => k}) do
+    size_bits = k |> Base.url_decode64!(padding: false) |> byte_size() |> Kernel.*(8)
+
+    cond do
+      size_bits >= 512 -> ["HS256", "HS384", "HS512"]
+      size_bits >= 384 -> ["HS256", "HS384"]
+      size_bits >= 256 -> ["HS256"]
+      true -> []
+    end
+  end
+  def sig_algs_supported(%{"kty" => "oct"}), do: []
+  def sig_algs_supported(_), do: []
+
+  @doc """
+  Returns the list of supported key derivation algorithm for a given JWK
+
+  ## Examples
+      iex> JOSE.JWK.generate_key({:rsa, 2048}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.enc_algs_supported()
+      ["RSA1_5", "RSA-OAEP", "RSA-OAEP-256"]
+
+      iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.enc_algs_supported()
+      ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]
+
+      iex> JOSE.JWK.generate_key({:oct, 16}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.enc_algs_supported()
+      ["A128KW", "A128GCMKW", "dir", "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW"]
+
+      iex> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.enc_algs_supported()
+      ["A256KW", "A256GCMKW", "dir", "PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW"]
+
+      iex> JOSE.crypto_fallback(true)
+      iex> JOSE.JWK.generate_key({:okp, :Ed25519}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.enc_algs_supported()
+      ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]
+  """
+  @spec enc_algs_supported(t()) :: [JWA.enc_alg()]
+  def enc_algs_supported(%{"alg" => alg}), do: [alg]
+  def enc_algs_supported(%{"kty" => "RSA"}), do: ["RSA1_5", "RSA-OAEP", "RSA-OAEP-256"]
+  def enc_algs_supported(%{"kty" => kty}) when kty in ["EC", "OKP"],
+    do: ["ECDH-ES", "ECDH-ES+A128KW", "ECDH-ES+A192KW", "ECDH-ES+A256KW"]
+  def enc_algs_supported(%{"kty" => "oct", "k" => k}) do
+    size_bits = k |> Base.url_decode64!(padding: false) |> byte_size() |> Kernel.*(8)
+
+    cond do
+      size_bits == 128 ->
+        ["A128KW", "A128GCMKW", "dir", "PBES2-HS256+A128KW", "PBES2-HS384+A192KW",
+         "PBES2-HS512+A256KW"]
+
+      size_bits == 192 ->
+        ["A192KW", "A192GCMKW", "dir", "PBES2-HS256+A128KW", "PBES2-HS384+A192KW",
+         "PBES2-HS512+A256KW"]
+
+      size_bits == 256 ->
+        ["A256KW", "A256GCMKW", "dir", "PBES2-HS256+A128KW", "PBES2-HS384+A192KW",
+         "PBES2-HS512+A256KW"]
+
+      true ->
+        ["PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW"]
+    end
+  end
+  def enc_algs_supported(%{"kty" => "oct"}),
+    do: ["PBES2-HS256+A128KW", "PBES2-HS384+A192KW", "PBES2-HS512+A256KW"]
+  def enc_algs_supported(_), do: []
 
   @doc """
   Verifies a JWK
