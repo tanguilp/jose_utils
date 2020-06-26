@@ -26,6 +26,7 @@ defmodule JOSEUtils.JWK do
 
   @type key_selector_opt ::
   {:alg, JWA.sig_alg() | JWA.enc_alg | [JWA.sig_alg()] | [JWA.enc_alg()]}
+  | {:crv, JWA.crv() | [JWA.crv()]}
   | {:enc, JWA.enc_enc() | [JWA.enc_enc()]}
   | {:key_ops, key_op() | [key_op()]}
   | {:kid, kid()}
@@ -128,6 +129,7 @@ defmodule JOSEUtils.JWK do
       key_selector
       |> Enum.into(%{})
       |> simple_value_to_list(:alg)
+      |> simple_value_to_list(:crv)
       |> simple_value_to_list(:enc)
       |> simple_value_to_list(:key_ops)
       |> simple_value_to_list(:kty)
@@ -158,7 +160,8 @@ defmodule JOSEUtils.JWK do
     key_selector_key_ops_valid?(jwk, key_selector) and
     key_selector_kty_valid?(jwk, key_selector) and
     key_selector_alg_valid?(jwk, key_selector) and
-    key_selector_enc_valid?(jwk, key_selector)
+    key_selector_enc_valid?(jwk, key_selector) and
+    key_selector_crv_valid?(jwk, key_selector)
   end
 
   defp key_selector_use_valid?(%{"use" => use}, %{use: use}), do: true
@@ -179,6 +182,9 @@ defmodule JOSEUtils.JWK do
 
   defp key_selector_enc_valid?(%{"enc" => enc}, %{alg: encs}), do: enc in encs
   defp key_selector_enc_valid?(_, _), do: true
+
+  defp key_selector_crv_valid?(%{"crv" => crv}, %{crv: crvs}), do: crv in crvs
+  defp key_selector_crv_valid?(_, _), do: true
 
   @doc """
   Returns the digest used by a signature algorithm of the key

@@ -34,6 +34,7 @@ defmodule JOSEUtils do
 
       iex(2)> JOSEUtils.is_jws?("eyJhbGciOiJIUzI1NiJ9.e30.5paAJxaOXSqRUIXrP_vJXUZu2SCBH-ojgP4D6Xr6GPU")
       true
+
       iex(3)> JOSEUtils.is_jws?("Some.string")
       false
   """

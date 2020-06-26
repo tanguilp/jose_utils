@@ -81,6 +81,21 @@ defmodule JOSEUtils.JWA do
   """
   @type enc_enc :: String.t()
 
+  @typedoc """
+  Ec curve
+
+  One of:
+  - `"P-256"`
+  - `"P-384"`
+  - `"P-521"`
+  - `"Ed25519"`
+  - `"Ed448"`
+  - `"X25519"`
+  - `"X448"`
+  - `"secp256k1"`
+  """
+  @type crv :: String.t()
+
   @doc """
   Returns the JOSE algorithm from aan X509 signature algorithm, or `nil` if it has no JOSE
   equivalent
