@@ -168,7 +168,7 @@ defmodule JOSEUtils.JWK do
   defp key_selector_use_valid?(%{"use" => _}, %{use: _}), do: false
   defp key_selector_use_valid?(_, _), do: true
 
-  defp key_selector_key_ops_valid?(%{"key_ops" => jwk_key_ops}, %{key_op: key_ops}),
+  defp key_selector_key_ops_valid?(%{"key_ops" => jwk_key_ops}, %{key_ops: key_ops}),
     do: Enum.any?(key_ops, fn key_op -> key_op in jwk_key_ops end)
   defp key_selector_key_ops_valid?(_, _), do: true
 
@@ -217,7 +217,7 @@ defmodule JOSEUtils.JWK do
       iex> match?(%{"kty" => "EC", "crv" => "P-521"}, JOSE.JWK.generate_key({:ec, "P-521"}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.to_public())
       true
 
-      iex> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.to_public()                                                
+      iex> JOSE.JWK.generate_key({:oct, 32}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.to_public()
       %{"kty" => "oct"}
   """
   @spec to_public(t()) :: t()
@@ -237,7 +237,7 @@ defmodule JOSEUtils.JWK do
   Returns the list of supported signature algorithms for a given JWK
 
   ## Example
-  
+
       iex> JOSE.JWK.generate_key({:ec, "P-256"}) |> JOSE.JWK.to_map() |> elem(1) |> JOSEUtils.JWK.sig_algs_supported()
       ["ES256"]
 

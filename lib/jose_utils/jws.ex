@@ -158,27 +158,20 @@ defmodule JOSEUtils.JWS do
   end
 
   def verify(jws, jwks, allowed_algs) do
-    case String.split(jws, ".") do
-      [header_b64, _, _] ->
-        with {:ok, header_str} <- Base.decode64(header_b64, padding: false),
-             {:ok, header} <- Jason.decode(header_str),
-             true <- header["alg"] in allowed_algs do
-          jwks =
-            case header do
-              %{"alg" => _, "kid" => jws_kid} ->
-                Enum.filter(jwks, fn jwk -> jwk["kid"] == jws_kid end)
+    with {:ok, header} <- peek_header(jws),
+         true <- header["alg"] in allowed_algs do
+      jwks =
+        case header do
+          %{"alg" => _, "kid" => jws_kid} ->
+            Enum.filter(jwks, fn jwk -> jwk["kid"] == jws_kid end)
 
-              _ ->
-                jwks
-            end
-            |> JOSEUtils.JWKS.verification_keys(header["alg"])
-
-          do_verify(jws, header, jwks)
-        else
           _ ->
-            :error
+            jwks
         end
+        |> JOSEUtils.JWKS.verification_keys(header["alg"])
 
+      do_verify(jws, header, jwks)
+    else
       _ ->
         :error
     end

@@ -7,7 +7,7 @@ Convenience functions to work with JOSE (JSON Object Signing and Encryption)
 ```elixir
 def deps do
   [
-    {:jose_utils, "~> 0.3.1"}
+    {:jose_utils, "~> 0.3.2"}
   ]
 end
 ```
