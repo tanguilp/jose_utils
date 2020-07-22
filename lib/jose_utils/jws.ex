@@ -80,9 +80,7 @@ defmodule JOSEUtils.JWS do
   The payload can be a string, in which case it is signed directly, or any other data type
   which will first be converted into text using JSON serialization.
 
-  Notice that additional headers from the JWK or the `additional_headers` parameters are
-  **not** serialized into the result JWS, because of lack of support by the underlying
-  library.
+  If the JWK has a key id ("kid" member), it is automatically added to the resulting JWS.
 
   ## Example
 
@@ -114,7 +112,12 @@ defmodule JOSEUtils.JWS do
   ) :: serialized()
   def sign!(payload, jwk, sig_alg, additional_headers \\ %{})
 
-  def sign!(<<_::binary>> = payload, jwk, sig_alg, additional_headers) do
+  def sign!(payload, %{"kid" => kid} = jwk, sig_alg, additional_headers),
+    do: do_sign!(payload, jwk, sig_alg, Map.put(additional_headers, "kid", kid))
+  def sign!(payload, jwk, sig_alg, additional_headers),
+    do: do_sign!(payload, jwk, sig_alg, additional_headers)
+
+  defp do_sign!(<<_::binary>> = payload, jwk, sig_alg, additional_headers) do
     jwk
     |> JOSE.JWK.from_map()
     |> JOSE.JWS.sign(payload, Map.merge(additional_headers, %{"alg" => sig_alg}))
@@ -122,7 +125,7 @@ defmodule JOSEUtils.JWS do
     |> elem(1)
   end
 
-  def sign!(payload, jwk, sig_alg, additional_headers) do
+  defp do_sign!(payload, jwk, sig_alg, additional_headers) do
     payload
     |> Jason.encode!()
     |> sign!(jwk, sig_alg, additional_headers)

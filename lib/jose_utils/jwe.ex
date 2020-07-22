@@ -53,9 +53,7 @@ defmodule JOSEUtils.JWE do
   The payload can be a string, in which case it is signed directly, or any other data type
   which will first be converted into text using JSON serialization.
 
-  Notice that additional headers from the JWK or the `additional_headers` parameters are
-  **not** serialized into the result JWE, because of lack of support by the underlying
-  library.
+  If the JWK has a key id ("kid" member), it is automatically added to the resulting JWS.
   """
   @spec encrypt(
     payload :: any(),
@@ -78,9 +76,14 @@ defmodule JOSEUtils.JWE do
     JWA.enc_enc(),
     header :: %{optional(String.t()) => any()}
   ) :: serialized()
-  def encrypt!(payload, jwk, alg, enc, headers \\ %{})
+  def encrypt!(payload, jwk, alg, enc, additional_headers \\ %{})
 
-  def encrypt!(<<_::binary>> = payload, %{} = jwk, alg, enc, additional_headers) do
+  def encrypt!(payload, %{"kid" => kid} = jwk, alg, enc, additional_headers),
+    do: do_encrypt!(payload, jwk, alg, enc, Map.put(additional_headers, "kid", kid))
+  def encrypt!(payload, jwk, alg, enc, additional_headers),
+    do: do_encrypt!(payload, jwk, alg, enc, additional_headers)
+
+  defp do_encrypt!(<<_::binary>> = payload, %{} = jwk, alg, enc, additional_headers) do
     jwk
     |> JOSE.JWK.from_map()
     |> JOSE.JWE.block_encrypt(
@@ -91,7 +94,7 @@ defmodule JOSEUtils.JWE do
     |> elem(1)
   end
 
-  def encrypt!(<<_::binary>> = payload, {jwk_sk, jwk_pk}, alg, enc, additional_headers)
+  defp do_encrypt!(<<_::binary>> = payload, {jwk_sk, jwk_pk}, alg, enc, additional_headers)
     when alg in @ecdh_algs
   do
     jwk_sk = JOSE.JWK.from_map(jwk_sk)
@@ -106,7 +109,7 @@ defmodule JOSEUtils.JWE do
     |> elem(1)
   end
 
-  def encrypt!(payload, jwk, alg, enc, additional_headers) do
+  defp do_encrypt!(payload, jwk, alg, enc, additional_headers) do
     payload
     |> Jason.encode!()
     |> encrypt!(jwk, alg, enc, additional_headers)

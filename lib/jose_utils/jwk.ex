@@ -353,7 +353,8 @@ defmodule JOSEUtils.JWK do
 
   @spec verify(t()) :: result()
   def verify(%{} = jwk) do
-    with :ok <- verify_x5c(jwk),
+    with :ok <- is_jwk(jwk),
+         :ok <- verify_x5c(jwk),
          :ok <- verify_x5t(jwk),
          :ok <- verify_x5t_s256(jwk),
          :ok <- verify_use_key_ops_consistent(jwk),
@@ -361,6 +362,10 @@ defmodule JOSEUtils.JWK do
       :ok
     end
   end
+
+  @spec is_jwk(t()) :: result()
+  defp is_jwk(%{"kty" => kty}) when is_binary(kty), do: :ok
+  defp is_jwk(_), do: {:error, :invalid_jwk}
 
   @spec verify_x5c(t()) :: result()
   defp verify_x5c(%{"x5c" => [_ | _]} = jwk) do
