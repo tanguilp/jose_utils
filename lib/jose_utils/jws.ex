@@ -82,15 +82,21 @@ defmodule JOSEUtils.JWS do
 
   If the JWK has a key id ("kid" member), it is automatically added to the resulting JWS.
 
+  When using the `"none"` algorithm, anything can be passed as the JWK (as it is not used).
+
   ## Example
 
       iex> jwk = %{"k" => "FWTNVgrQyQyZmduoAVyOfI1myMs", "kty" => "oct"}
       iex> JOSEUtils.JWS.sign("some text", jwk, "HS256")
       {:ok, "eyJhbGciOiJIUzI1NiJ9.c29tZSB0ZXh0.2L2wNRpAOw92LSAII2PQ9_y9zi2YD9NfjJuGBpNkVBE"}
+
+      iex> JOSE.unsecured_signing(true)
+      iex> JOSEUtils.JWS.sign!("test payload", %{}, "none", %{"some" => "header"})
+      "eyJhbGciOiJub25lIiwic29tZSI6ImhlYWRlciJ9.dGVzdCBwYXlsb2Fk."
   """
   @spec sign(
     payload :: any(),
-    JWK.t(),
+    JWK.t() | any(),
     JWA.sig_alg(),
     additional_headers :: %{optional(String.t()) => any()}
   ) :: {:ok, serialized()} | {:error, Exception.t()}
@@ -117,12 +123,18 @@ defmodule JOSEUtils.JWS do
   def sign!(payload, jwk, sig_alg, additional_headers),
     do: do_sign!(payload, jwk, sig_alg, additional_headers)
 
-  defp do_sign!(<<_::binary>> = payload, jwk, sig_alg, additional_headers) do
-    jwk
-    |> JOSE.JWK.from_map()
-    |> JOSE.JWS.sign(payload, Map.merge(additional_headers, %{"alg" => sig_alg}))
+  defp do_sign!(<<_::binary>> = payload, %JOSE.JWK{} = jose_jwk, sig_alg, additional_headers) do
+    JOSE.JWS.sign(jose_jwk, payload, Map.merge(additional_headers, %{"alg" => sig_alg}))
     |> JOSE.JWS.compact()
     |> elem(1)
+  end
+
+  defp do_sign!(payload, _jwk, "none", additional_headers) do
+    do_sign!(payload, %JOSE.JWK{}, "none", additional_headers)
+  end
+
+  defp do_sign!(<<_::binary>> = payload, jwk, sig_alg, additional_headers) do
+    do_sign!(payload, JOSE.JWK.from_map(jwk), sig_alg, additional_headers)
   end
 
   defp do_sign!(payload, jwk, sig_alg, additional_headers) do
