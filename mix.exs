@@ -5,7 +5,7 @@ defmodule JOSEUtils.MixProject do
     [
       app: :jose_utils,
       description: "Convenience functions to work with JOSE (JSON Object Signing and Encryption)",
-      version: "0.3.3",
+      version: "0.4.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
@@ -29,7 +29,7 @@ defmodule JOSEUtils.MixProject do
       {:dialyxir, "~> 1.0.0-rc.4", only: [:dev], runtime: false},
       {:ex_doc, "~> 0.19", only: :dev, runtime: false},
       {:jason, "~> 1.1"},
-      {:jose, "~> 1.10.1"},
+      {:jose, "~> 1.0"},
       {:x509, "~> 0.8.0"}
     ]
   end
